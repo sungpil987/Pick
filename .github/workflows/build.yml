@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,9 +17,6 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Extract project
         run: |
           unzip -q PICK_GitHub_Upload.zip -d project
@@ -26,12 +24,13 @@ jobs:
 
       - name: Build APK
         run: |
-          cd project
-          GRADLEW=$(find . -name gradlew -type f | head -n 1)
+          GRADLEW=$(find project -name gradlew -type f | head -n 1)
+
           if [ -z "$GRADLEW" ]; then
             echo "Gradle wrapper not found"
             exit 1
           fi
+
           chmod +x "$GRADLEW"
           cd "$(dirname "$GRADLEW")"
           ./gradlew assembleDebug
