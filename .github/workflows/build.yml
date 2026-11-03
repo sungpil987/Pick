@@ -27,18 +27,37 @@ jobs:
         run: |
           unzip -q PICK_GitHub_Upload.zip -d project
 
-      - name: Build APK
+      - name: Align JVM targets
         run: |
-          SETTINGS=$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)
+          APP=$(find project -path '*/app/build.gradle' -o -path '*/app/build.gradle.kts' | head -n 1)
 
-          if [ -z "$SETTINGS" ]; then
-            echo "ERROR: settings.gradle not found"
-            find project -maxdepth 4 -type f
+          if [ -z "$APP" ]; then
+            echo "App Gradle file not found"
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$SETTINGS")
-          gradle --no-daemon -p "$PROJECT_DIR" assembleDebug
+          if [[ "$APP" == *.kts ]]; then
+            cat >> "$APP" <<'EOF'
+
+          tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+              kotlinOptions {
+                  jvmTarget = "1.8"
+              }
+          }
+          EOF
+          else
+            cat >> "$APP" <<'EOF'
+
+          tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+              kotlinOptions.jvmTarget = "1.8"
+          }
+          EOF
+          fi
+
+      - name: Build APK
+        run: |
+          SETTINGS=$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)
+          gradle --no-daemon -p "$(dirname "$SETTINGS")" assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
